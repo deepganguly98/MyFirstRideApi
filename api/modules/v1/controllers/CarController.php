@@ -196,4 +196,51 @@ class CarController extends ActiveController
         }
         
     }
+
+    public function actionInitiatechat(){
+        \Yii::$app->response->format = \yii\web\Response:: FORMAT_JSON;
+
+        $data = \Yii::$app->request->rawBody;
+        $json = json_decode($data);
+
+        $tag = (new \yii\db\Query())
+            ->select('FavouriteDeleteTag,MySavedSearchId')
+            ->from('mysavedcar')
+            ->where('BuyerUserId = :id1 and SellerUserId = :id2 and CarId = :id3' ,array(':id1'=>$json->_BuyerUserId,':id2'=>$json->_SellerUserId,':id3'=>$json->_CarId))
+            ->all();
+
+        $counts = array_map('count', $tag);
+        $status=1;
+        for($i = 0; $i<sizeof($tag); $i++){
+            if($tag[$i]['FavouriteDeleteTag']=='0'){
+                $status = 0;
+                \Yii::$app->db->createCommand("UPDATE  carinspectionhistory SET BuyerComment=:com,BuyerAppointmentDate=:dat,BuyerUserId=:bid,SellerUserId=:id WHERE MySavedSearchId=:s")
+                ->bindValue(':com', $json->_BuyerComment)
+                ->bindValue(':dat', $json->_BuyerAppointmentDate)
+                ->bindValue(':bid', $json->_BuyerUserId)
+                ->bindValue(':id', $json->_SellerUserId)
+                ->bindValue(':s', $tag[$i]['MySavedSearchId'])
+                ->execute();
+            }
+            else{
+                $status = 1;
+                
+            }
+            
+        }
+        
+        if($status==0){
+            return array(
+                "_ReturnCode"=>$status,
+                "_ReturnMessage"=>"Success",
+            );
+        }
+        else{
+            return array(
+                "_ReturnCode"=>$status,
+                "_ReturnMessage"=>"Failure",
+            );
+        }
+        
+    }
 }
