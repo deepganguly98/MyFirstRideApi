@@ -43,7 +43,7 @@ return [
                 [
                     'class' => 'yii\rest\UrlRule', 
                     'controller' => ['v1/country','v1/state','v1/car'],
-                    'extraPatterns' => ['POST getcarinfo' => 'getcarinfo', 'POST getcarmodels' => 'getcarmodels'],
+                    'extraPatterns' => ['POST getcarinfo' => 'getcarinfo', 'POST getcarmodels' => 'getcarmodels', 'POST getsellerdetails' => 'getsellerdetails', 'POST makecarfavorite' => 'makecarfavorite'],
                     'pluralize' => false,
                     'tokens' => [
                         '{id}' => '<id:\\w+>'

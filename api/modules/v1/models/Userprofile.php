@@ -1,6 +1,7 @@
 <?php
 
-namespace app\models;
+namespace api\modules\v1\models;
+use \yii\db\ActiveRecord;
 
 use Yii;
 
