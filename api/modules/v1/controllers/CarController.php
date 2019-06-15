@@ -155,9 +155,9 @@ class CarController extends ActiveController
         $data = \Yii::$app->request->rawBody;
         $json = json_decode($data);
 
-        $sql = 'SELECT FirstName, LastName, EmailId, MobileNo, Address1, ZipCode FROM userprofile WHERE UserId = :id';
+       /*  $sql = 'SELECT FirstName, LastName, EmailId, MobileNo, Address1, ZipCode FROM userprofile WHERE UserId = :id';
         $details  = Userprofile::findBySql($sql,[':id'=>$json->_SellerUserId])->all();
-
+ */
         $details = (new \yii\db\Query())
                 ->select('FirstName, LastName, EmailId, MobileNo, Address1, city.CityName, state.StateName, ZipCode')
                 ->from('userprofile')
@@ -166,8 +166,27 @@ class CarController extends ActiveController
                 ->where(['UserId' => $json->_SellerUserId])
                 ->all();
               
+        if(count($details)>0){
+            return array(
+                "_ReturnCode"=>"0",
+                "_ReturnMessage"=>"Success",
+                "_FirstName"=>$details[0]['FirstName'],
+                "_LastName"=>$details[0]['LastName'],
+                "_EmailId"=>$details[0]['EmailId'],
+                "_MobileNumber"=>$details[0]['MobileNo'],
+                "_AddressLine1"=>$details[0]['Address1'],
+                "_CityName"=>$details[0]['CityName'],
+                "_StateName"=>$details[0]['StateName'],
+                "_ZipCode"=>$details[0]['ZipCode']
+            );
+        }else{
+            return array(
+                "_ReturnCode"=>"1",
+                "_ReturnMessage"=>"Failure"
+            );
+        }
 
-        return $details;
+        
     }
 
     public function actionMakecarfavorite(){
@@ -271,8 +290,11 @@ class CarController extends ActiveController
             );
         }
         
+        
     }
-    public function actionGetcars(){
+    
+	
+	public function actionGetcars(){
         \Yii::$app->response->format = \yii\web\Response:: FORMAT_JSON;
 
         $data = \Yii::$app->request->rawBody;
@@ -291,15 +313,22 @@ class CarController extends ActiveController
         $colIds = $json->colourIds;
         $fueltypes = $json->fuelTypes;
         $lifsids = $json->lifestyleIds;
-        $pplloc = array($json->pPlateApprovedLocations);
-        $city = array();
-        $count = count($pplloc[0]);
-        $c=0;
-        while($c<$count){
-           
-            array_push($city,intval($pplloc[0][$c]->_CityId));
-            $c++; 
-        }
+		$city = array();
+		if($json->pPlateApprovedLocations != null){
+			$pplloc = array($json->pPlateApprovedLocations);
+			
+			$count = count($pplloc[0]);
+			$c=0;
+			while($c<$count){
+			   if($pplloc[0][$c] != null){
+				   array_push($city,intval($pplloc[0][$c]->_CityId));
+			   }
+				
+				$c++; 
+			}
+			
+		}
+        
 
         $rows = (new \yii\db\Query())
             ->select('car.CarId,mysavedcar.SellerUserId,car.CarMakeId,mysavedcar.FavouriteDeleteTag,car.CarModelId,Edition,MfgYYYYMM,Km,FuelType,Transmission,FirstOwner,Price,ANCAPSafetyRating,cc.ColourName,cc.ColourId,cc.ImageURL cURL,ci.ImageId,ci.ImageURL iURL,city.CityName,city.CityId,state.StateId,state.StateName,country.CountryName,country.CountryId')
@@ -316,19 +345,19 @@ class CarController extends ActiveController
             ->innerjoin('lifestyle','lifestyle.LifeStyleId = car.LifeStyleId')
             ->innerjoin('carbodytype','carbodytype.CarBodyTypeId = cm.CarBodyTypeId')
             ->where('LocationStateId=:id' ,array(':id'=>$json->_LocationStateId))
-            ->andWhere('Km >= :start AND Km <= :end', array(':start' => $json->_KilometersFrom,':end' => $json->_KilometersTo))
-            ->andWhere(['between', 'SUBSTRING(MfgYYYYMM,1,4)', $json->_YearFrom, $json->_YearTo])
-            ->andWhere('mysavedcar.BuyerUserId=:id',array(':id'=>$json->_BuyerUserId))
-            ->andWhere('Transmission = :t',array(':t'=>$json->_Transmission))
-            ->andWhere('ANCAPSafetyRating = :r',array(':r'=>$json->_AncapSafetyRating))
-            ->andFilterWhere([
-                'cm.CarMakeId'=>$makeIds,
-                'cm.CarBodyTypeId'=>$bodyIds,
-                'cm.CarModelId'=>$modIds,
-                'cc.ColourId'=>$colIds,
-                'FuelType'=>$fueltypes,
-                'car.LifeStyleId'=>$lifsids,
-                'PPlateApprvedCityId'=>$city
+            ->orWhere(['between','Km', $json->_KilometersFrom,$json->_KilometersTo])
+            ->orWhere(['between', 'SUBSTRING(MfgYYYYMM,1,4)', $json->_YearFrom, $json->_YearTo])
+            ->orWhere('mysavedcar.BuyerUserId=:id',array(':id'=>$json->_BuyerUserId))
+            ->orWhere('Transmission = :t',array(':t'=>$json->_Transmission))
+            ->orWhere('ANCAPSafetyRating = :r',array(':r'=>$json->_AncapSafetyRating))
+            ->orFilterWhere(['or',
+                ['cm.CarMakeId'=>$makeIds],
+                ['cm.CarBodyTypeId'=>$bodyIds],
+                ['cm.CarModelId'=>$modIds],
+                ['cc.ColourId'=>$colIds],
+                ['FuelType'=>$fueltypes],
+                ['car.LifeStyleId'=>$lifsids],
+                ['PPlateApprvedCityId'=>$city]
                 ])
             ->orFilterWhere(['or',
                 ['cc.ColourName'=>$json->_SearchKeywords],
@@ -386,7 +415,7 @@ class CarController extends ActiveController
             );
             array_push($cars['cars'],$result);
         }
-        //return $city;
+        //return $rows;
         if(count($rows)>0){
             return $cars;
         }
