@@ -21,6 +21,35 @@ class CarController extends ActiveController
 {
     public $modelClass = 'api\modules\v1\models\Car';
 
+    public static function allowedDomains()
+    {
+        return [
+            '*',
+        ];
+    }
+
+/**
+ * @inheritdoc
+ */
+    public function behaviors()
+    {
+        return array_merge(parent::behaviors(), [
+
+            // For cross-domain AJAX request
+            'corsFilter'  => [
+                'class' => \yii\filters\Cors::className(),
+                'cors'  => [
+                    // restrict access to domains:
+                    'Origin' => ['*'],
+                    'Access-Control-Allow-Headers'     => ['*'],
+                    'Access-Control-Allow-Methods'     => ['HEAD','GET','OPTIONS','POST'],
+                    'Access-Control-Max-Age'           => 1000,                 // Cache (seconds)
+                ],
+            ],
+
+        ]);
+    }
+
     public function actionGetcarinfo(){
         $data = \Yii::$app->request->rawBody;
         $json = json_decode($data);
@@ -239,6 +268,132 @@ class CarController extends ActiveController
             return array(
                 "_ReturnCode"=>$status,
                 "_ReturnMessage"=>"Failure",
+            );
+        }
+        
+    }
+    public function actionGetcars(){
+        \Yii::$app->response->format = \yii\web\Response:: FORMAT_JSON;
+
+        $data = \Yii::$app->request->rawBody;
+        $json = json_decode($data);
+
+        $cars = array(
+            '_ReturnCode'=>0,
+            '_ReturnMessage'=>"Success",
+            'cars'=>[]
+
+        );
+
+        $makeIds = $json->carMakeIds;
+        $bodyIds = $json->carBodyTypeIds;
+        $modIds = $json->carModelIds;
+        $colIds = $json->colourIds;
+        $fueltypes = $json->fuelTypes;
+        $lifsids = $json->lifestyleIds;
+        $pplloc = array($json->pPlateApprovedLocations);
+        $city = array();
+        $count = count($pplloc[0]);
+        $c=0;
+        while($c<$count){
+           
+            array_push($city,intval($pplloc[0][$c]->_CityId));
+            $c++; 
+        }
+
+        $rows = (new \yii\db\Query())
+            ->select('car.CarId,mysavedcar.SellerUserId,car.CarMakeId,mysavedcar.FavouriteDeleteTag,car.CarModelId,Edition,MfgYYYYMM,Km,FuelType,Transmission,FirstOwner,Price,ANCAPSafetyRating,cc.ColourName,cc.ColourId,cc.ImageURL cURL,ci.ImageId,ci.ImageURL iURL,city.CityName,city.CityId,state.StateId,state.StateName,country.CountryName,country.CountryId')
+            ->distinct()
+            ->from('car')
+            ->innerjoin('mysavedcar','mysavedcar.CarId = car.CarId')
+            ->innerjoin('colour cc','cc.ColourId = car.ColourId')
+            ->innerjoin('carimage ci','ci.CarId = car.CarId')
+            ->innerjoin('city','city.CityId = car.LocationCityId')
+            ->innerjoin('state','state.StateId = car.LocationStateId')
+            ->innerjoin('country','country.CountryId = state.CountryId')
+            ->innerjoin('carmodel cm','cm.CarMakeId = car.CarMakeId')
+            ->innerjoin('carmake','carmake.CarMakeId = car.CarMakeId')
+            ->innerjoin('lifestyle','lifestyle.LifeStyleId = car.LifeStyleId')
+            ->innerjoin('carbodytype','carbodytype.CarBodyTypeId = cm.CarBodyTypeId')
+            ->where('LocationStateId=:id' ,array(':id'=>$json->_LocationStateId))
+            ->andWhere('Km >= :start AND Km <= :end', array(':start' => $json->_KilometersFrom,':end' => $json->_KilometersTo))
+            ->andWhere(['between', 'SUBSTRING(MfgYYYYMM,1,4)', $json->_YearFrom, $json->_YearTo])
+            ->andWhere('mysavedcar.BuyerUserId=:id',array(':id'=>$json->_BuyerUserId))
+            ->andWhere('Transmission = :t',array(':t'=>$json->_Transmission))
+            ->andWhere('ANCAPSafetyRating = :r',array(':r'=>$json->_AncapSafetyRating))
+            ->andFilterWhere([
+                'cm.CarMakeId'=>$makeIds,
+                'cm.CarBodyTypeId'=>$bodyIds,
+                'cm.CarModelId'=>$modIds,
+                'cc.ColourId'=>$colIds,
+                'FuelType'=>$fueltypes,
+                'car.LifeStyleId'=>$lifsids,
+                'PPlateApprvedCityId'=>$city
+                ])
+            ->orFilterWhere(['or',
+                ['cc.ColourName'=>$json->_SearchKeywords],
+                ['cm.CarModelName'=>$json->_SearchKeywords],
+                ['city.CityName'=>$json->_SearchKeywords],
+                ['state.StateName'=>$json->_SearchKeywords],
+                ['country.CountryName'=>$json->_SearchKeywords],
+                ['Edition'=>$json->_SearchKeywords],
+                ['FuelType'=>$json->_SearchKeywords],
+                ['carmake.CarMakeName'=>$json->_SearchKeywords],
+                ['carbodytype.CarBodyTypeName'=>$json->_SearchKeywords],
+                ['lifestyle.LifeStyleName'=>$json->_SearchKeywords],
+                ])
+            ->all();
+
+        $result = array([]);
+        for($i=0;$i<sizeof($rows);$i++){
+            if($rows[$i]['FavouriteDeleteTag']==0){
+                $tag = "true";
+            }
+            else{
+                $tag = "false";
+            }
+            $result = array(
+                '_CarId' => $rows[$i]['CarId'],
+                '_SellerUserId' => $rows[$i]['SellerUserId'],
+                '_IsFavourite' => $tag,
+                '_CarMakeId' => $rows[$i]['CarMakeId'],
+                '_Edition' => $rows[$i]['Edition'],
+                '_MfgDate' => $rows[$i]['MfgYYYYMM'],
+                '_Km' => $rows[$i]['Km'],
+                '_FuelType' => $rows[$i]['FuelType'],
+                '_Transmission' => $rows[$i]['Transmission'],
+                'colour'=>[
+                    '_Name' => $rows[$i]['ColourName'],
+                    '_ImageURL' => $rows[$i]['cURL'],
+                    '_Id' => $rows[$i]['ColourId']
+                ],
+                '_FirstOwner' => $rows[$i]['FirstOwner'],
+                '_Price' => $rows[$i]['Price'],
+                '_ANCAPSafetyRating' => $rows[$i]['ANCAPSafetyRating'],
+                'location'=>[
+                    '_StateId' => $rows[$i]['StateId'],
+                    '_StateName' => $rows[$i]['StateName'],
+                    '_CityId' => $rows[$i]['CityId'],
+                    '_CityName' => $rows[$i]['CityName'],
+                    '_CountryId' => $rows[$i]['CountryId'],
+                    '_CountryName' => $rows[$i]['CountryName']
+                ],
+                'images' => [
+                    '_ImageId'=> $rows[$i]['ImageId'],
+                    '_ImageUrl'=>  $rows[$i]['iURL']
+
+                ]
+            );
+            array_push($cars['cars'],$result);
+        }
+        //return $city;
+        if(count($rows)>0){
+            return $cars;
+        }
+        else{
+            return array(
+            '_ReturnCode'=>1,
+            '_ReturnMessage'=>"Failure"
             );
         }
         
