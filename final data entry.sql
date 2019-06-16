@@ -157,8 +157,8 @@ CREATE TABLE `car` (
 /*Data for the table `car` */
 
 insert  into `car`(`CarId`,`UserId`,`CarMakeId`,`CarModelId`,`Edition`,`MfgYYYYMM`,`Km`,`FuelType`,`Transmission`,`ColourId`,`FirstOwner`,`Price`,`LocationStateId`,`LocationCityId`,`DatePurchased`,`AdStatus`,`DateRemoved`,`PlanId`,`PPlateApprovedStateId`,`PPlateApprvedCityId`,`ANCAPSafetyRating`,`LifeStyleId`,`CreateDateTime`,`ModifyDateTime`,`DeleteTag`) values 
-(1,2,1,1,'xyz','2017',10000,'Diesel','4',1,'Y',34000,1,1,'0000-00-00','1',NULL,1,1,2,'1',1,NULL,NULL,NULL),
-(2,3,3,4,'abc','2018',20000,'Petrol','5',2,'N',25000,2,5,'0000-00-00','1',NULL,1,2,4,'5',2,NULL,NULL,NULL);
+(1,2,7,1,'xyz','201704',10000,'Diesel','4',1,'Y',34000,1,1,'0000-00-00','1',NULL,1,1,2,'1',1,NULL,NULL,NULL),
+(2,3,3,4,'abc','201800',20000,'Petrol','5',2,'N',25000,2,5,'0000-00-00','1',NULL,1,2,4,'5',2,NULL,NULL,NULL);
 
 /*Table structure for table `carbodytype` */
 
@@ -231,13 +231,14 @@ CREATE TABLE `carimage` (
   PRIMARY KEY (`ImageId`),
   KEY `fk_CarImage_Car1_idx` (`CarId`),
   CONSTRAINT `fk_CarImage_Car1` FOREIGN KEY (`CarId`) REFERENCES `car` (`CarId`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8;
 
 /*Data for the table `carimage` */
 
 insert  into `carimage`(`ImageId`,`CarId`,`ImageURL`,`CreateDateTime`,`ModifyDateTime`,`DeleteTag`) values 
-(1,1,NULL,NULL,NULL,'0'),
-(2,2,NULL,NULL,NULL,'0');
+(1,1,'asd',NULL,NULL,'0'),
+(2,2,'asda',NULL,NULL,'0'),
+(3,1,'sda',NULL,NULL,'0');
 
 /*Table structure for table `carinspectionhistory` */
 
@@ -264,9 +265,12 @@ CREATE TABLE `carinspectionhistory` (
   CONSTRAINT `fk_CarInspectionHistory_UserProfile1` FOREIGN KEY (`BuyerUserId`) REFERENCES `userprofile` (`UserId`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `fk_CarInspectionHistory_UserProfile2` FOREIGN KEY (`SellerUserId`) REFERENCES `userprofile` (`UserId`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `fk_CarInspection_MySavedCar1` FOREIGN KEY (`MySavedSearchId`) REFERENCES `mysavedcar` (`MySavedSearchId`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8;
 
 /*Data for the table `carinspectionhistory` */
+
+insert  into `carinspectionhistory`(`CarInspectionHistoryId`,`MySavedSearchId`,`SellerComment`,`SellerAppointmentDate`,`BuyerComment`,`BuyerAppointmentDate`,`TransactionDate`,`BuyerUserId`,`SellerUserId`,`BuyerDeleteTag`,`SellerDeleteTag`,`CreateDateTime`,`ModifyDateTime`) values 
+(1,1,'','','Hi','2019-06-16','0000-00-00',1,2,'','','0000-00-00','0000-00-00');
 
 /*Table structure for table `carmake` */
 
@@ -753,8 +757,8 @@ CREATE TABLE `mysavedcar` (
 /*Data for the table `mysavedcar` */
 
 insert  into `mysavedcar`(`MySavedSearchId`,`BuyerUserId`,`SellerUserId`,`CarId`,`FavouriteDeleteTag`,`CreateDateTime`,`ModifyDateTime`) values 
-(1,1,2,1,NULL,NULL,NULL),
-(2,1,3,2,NULL,NULL,NULL);
+(1,1,2,1,'0',NULL,NULL),
+(2,1,3,2,'0',NULL,NULL);
 
 /*Table structure for table `planmaster` */
 
